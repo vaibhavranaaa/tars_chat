@@ -1,8 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatMessageTime } from "@/lib/utils";
+import { formatTimestamp } from "@/lib/utils";
 
 interface Props {
   conversation: {
@@ -22,59 +21,66 @@ export default function ConversationItem({ conversation }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const isActive = pathname === `/chat/${conversation._id}`;
-  const { otherUser, lastMessageTime, lastMessagePreview, unreadCount } =
-    conversation;
+  const { otherUser, lastMessageTime, lastMessagePreview, unreadCount } = conversation;
 
   if (!otherUser) return null;
+
+  const initials = otherUser.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
     <button
       onClick={() => router.push(`/chat/${conversation._id}`)}
-      className={`flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition w-full text-left ${
-        isActive ? "bg-blue-50 border-r-2 border-blue-500" : ""
-      }`}
+      className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all duration-200 group"
+      style={{
+        background: isActive ? "var(--bg-3)" : "transparent",
+        border: isActive ? "1px solid var(--border)" : "1px solid transparent",
+      }}
+      onMouseEnter={(e) => {
+        if (!isActive) (e.currentTarget as HTMLElement).style.background = "var(--bg-3)";
+      }}
+      onMouseLeave={(e) => {
+        if (!isActive) (e.currentTarget as HTMLElement).style.background = "transparent";
+      }}
     >
-      {/* Avatar with online dot */}
+      {/* Avatar */}
       <div className="relative flex-shrink-0">
-        <Avatar className="w-12 h-12">
-          <AvatarImage src={otherUser.imageUrl} />
-          <AvatarFallback className="bg-blue-100 text-blue-600 font-semibold">
-            {otherUser.name[0]?.toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <span
-          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-            otherUser.isOnline ? "bg-green-500" : "bg-gray-300"
-          }`}
+        {otherUser.imageUrl ? (
+          <img src={otherUser.imageUrl} alt={otherUser.name}
+            className="w-11 h-11 rounded-full object-cover" />
+        ) : (
+          <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold"
+            style={{ background: "var(--accent)", color: "white", fontFamily: "'Syne', sans-serif" }}>
+            {initials}
+          </div>
+        )}
+        {/* Online dot */}
+        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2"
+          style={{
+            background: otherUser.isOnline ? "var(--green)" : "var(--text-muted)",
+            borderColor: "var(--bg-2)",
+          }}
         />
       </div>
 
-      {/* Name + preview */}
+      {/* Text */}
       <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-baseline">
-          <span
-            className={`text-sm truncate ${
-              unreadCount > 0
-                ? "font-bold text-gray-900"
-                : "font-semibold text-gray-700"
-            }`}
-          >
+        <div className="flex justify-between items-baseline gap-1">
+          <span className="text-sm font-semibold truncate"
+            style={{ color: unreadCount > 0 ? "var(--text-primary)" : "var(--text-secondary)", fontFamily: "'Syne', sans-serif" }}>
             {otherUser.name}
           </span>
-          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">
-            {formatMessageTime(lastMessageTime)}
+          <span className="text-xs flex-shrink-0" style={{ color: "var(--text-muted)" }}>
+            {formatTimestamp(lastMessageTime)}
           </span>
         </div>
-        <div className="flex justify-between items-center mt-0.5">
-          <p
-            className={`text-xs truncate ${
-              unreadCount > 0 ? "text-gray-700 font-medium" : "text-gray-400"
-            }`}
-          >
+        <div className="flex justify-between items-center mt-0.5 gap-1">
+          <p className="text-xs truncate"
+            style={{ color: unreadCount > 0 ? "var(--text-secondary)" : "var(--text-muted)" }}>
             {lastMessagePreview ?? "No messages yet"}
           </p>
           {unreadCount > 0 && (
-            <span className="ml-2 flex-shrink-0 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+            <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+              style={{ background: "var(--accent)", color: "white" }}>
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}

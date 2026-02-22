@@ -31,7 +31,8 @@ export const getAllUsers = query({
     let users = await ctx.db.query("users").collect();
 
     // Exclude self
-    users = users.filter((u) => u._id !== currentUser._id);
+    users = users.filter((u) => u._id.toString() !== currentUser._id.toString());
+
 
     // Filter by search term
     if (search && search.trim()) {

@@ -1,25 +1,20 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import ConvexClientProvider from "@/components/providers/ConvexClientProvider";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
+import Sidebar from "@/components/sidebar/Sidebar";
+import UserSyncProvider from "@/components/providers/UserSyncProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+export default async function ChatLayout({ children }: { children: React.ReactNode }) {
+  const user = await currentUser();
+  if (!user) redirect("/sign-in");
 
-export const metadata: Metadata = {
-  title: "Tars Chat",
-  description: "Real-time chat",
-};
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
-      </body>
-    </html>
+    <UserSyncProvider>
+      <div className="flex h-screen w-full overflow-hidden bg-white">
+        <Sidebar />
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {children}
+        </main>
+      </div>
+    </UserSyncProvider>
   );
-}     
+}

@@ -1,97 +1,97 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/../convex/_generated/api";
+import { Id } from "@/../convex/_generated/dataModel";
 import { useEffect, useRef, useState } from "react";
 import MessageItem from "./MessageItem";
-import { ChevronDown } from "lucide-react";
+import TypingIndicator from "./TypingIndicator";
 
-export default function MessageList({
-  conversationId,
-}: {
+type Props = {
   conversationId: Id<"conversations">;
-}) {
+};
+
+export default function MessageList({ conversationId }: Props) {
   const messages = useQuery(api.messages.getMessages, { conversationId });
-  const currentUser = useQuery(api.users.getCurrentUser);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [showNewMessages, setShowNewMessages] = useState(false);
-  const [userScrolledUp, setUserScrolledUp] = useState(false);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
   const scrollToBottom = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    setShowNewMessages(false);
   };
 
-  // Auto-scroll when new messages arrive
+  // Auto-scroll only if user is at bottom
   useEffect(() => {
-    if (!messages) return;
-    if (!userScrolledUp) {
-      scrollToBottom();
-    } else {
-      setShowNewMessages(true);
-    }
-  }, [messages?.length]);
+    if (isAtBottom) scrollToBottom();
+    else setShowScrollBtn(true);
+  }, [messages]);
 
   const handleScroll = () => {
-    const container = containerRef.current;
-    if (!container) return;
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      100;
-    setUserScrolledUp(!isNearBottom);
-    if (isNearBottom) setShowNewMessages(false);
+    const el = containerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    setIsAtBottom(atBottom);
+    if (atBottom) setShowScrollBtn(false);
   };
 
-  // Loading
   if (messages === undefined) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500" />
+      <div className="flex-1 flex items-center justify-center bg-gray-50">
+        <div className="flex gap-1">
+          <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:0ms]" />
+          <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:150ms]" />
+          <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:300ms]" />
+        </div>
       </div>
     );
   }
 
-  // Empty state
   if (messages.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-        <p className="text-5xl mb-4">✉️</p>
-        <p className="font-semibold text-gray-700">No messages yet</p>
-        <p className="text-sm text-gray-400 mt-1">
-          Be the first to say hello! 👋
-        </p>
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
+        <p className="text-5xl mb-3">👋</p>
+        <p className="text-sm font-medium text-gray-600">No messages yet</p>
+        <p className="text-xs text-gray-400 mt-1">Say hello to start the conversation!</p>
       </div>
     );
   }
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div className="flex-1 relative overflow-hidden">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto px-4 py-4 flex flex-col gap-1"
+        className="h-full overflow-y-auto px-4 py-4 space-y-1 bg-gray-50"
       >
-        {messages.map((msg) => (
-          <MessageItem
-            key={msg._id}
-            message={msg}
-            isOwn={msg.senderId === currentUser?._id}
-            currentUserId={currentUser?._id}
-          />
-        ))}
+        {messages.map((msg, i) => {
+          const prevMsg = messages[i - 1];
+          const showAvatar =
+            !prevMsg || prevMsg.senderId !== msg.senderId;
+          return (
+            <MessageItem
+              key={msg._id}
+              message={msg}
+              showAvatar={showAvatar}
+            />
+          );
+        })}
+        <TypingIndicator conversationId={conversationId} />
         <div ref={bottomRef} />
       </div>
 
       {/* New messages button */}
-      {showNewMessages && (
+      {showScrollBtn && (
         <button
-          onClick={scrollToBottom}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-blue-500 text-white text-sm px-4 py-1.5 rounded-full shadow-lg hover:bg-blue-600 transition"
+          onClick={() => {
+            scrollToBottom();
+            setShowScrollBtn(false);
+            setIsAtBottom(true);
+          }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs px-4 py-2 rounded-full shadow-lg hover:bg-indigo-600 transition-colors"
         >
-          <ChevronDown className="w-4 h-4" />
-          New messages
+          ↓ New messages
         </button>
       )}
     </div>

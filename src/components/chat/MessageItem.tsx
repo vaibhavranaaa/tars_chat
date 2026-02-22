@@ -1,135 +1,128 @@
 "use client";
 
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { formatMessageTime } from "@/lib/utils";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import { Id } from "@/../convex/_generated/dataModel";
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
 
-const EMOJI_OPTIONS = ["👍", "❤️", "😂", "😮", "😢"];
+const REACTIONS = ["👍", "❤️", "😂", "😮", "😢"];
 
-interface Message {
-  _id: Id<"messages">;
-  _creationTime: number;
-  body: string;
-  senderId: Id<"users">;
-  deletedAt?: number;
-  reactions?: { emoji: string; userId: Id<"users"> }[];
-  sender?: { name: string; imageUrl?: string } | null;
-}
+type Props = { message: any; showAvatar: boolean; };
 
-interface Props {
-  message: Message;
-  isOwn: boolean;
-  currentUserId?: Id<"users">;
-}
-
-export default function MessageItem({ message, isOwn, currentUserId }: Props) {
+export default function MessageItem({ message, showAvatar }: Props) {
+  const currentUser = useQuery(api.users.getCurrentUser);
   const deleteMessage = useMutation(api.messages.deleteMessage);
   const toggleReaction = useMutation(api.messages.toggleReaction);
   const [showReactions, setShowReactions] = useState(false);
 
+  const isMe = message.senderId === currentUser?._id;
   const isDeleted = !!message.deletedAt;
 
-  // Group reactions by emoji
-  const reactionGroups: Record<string, { count: number; isMine: boolean }> =
-    {};
+  const reactionMap: Record<string, number> = {};
   for (const r of message.reactions ?? []) {
-    if (!reactionGroups[r.emoji]) {
-      reactionGroups[r.emoji] = { count: 0, isMine: false };
-    }
-    reactionGroups[r.emoji].count++;
-    if (r.userId === currentUserId) reactionGroups[r.emoji].isMine = true;
+    reactionMap[r.emoji] = (reactionMap[r.emoji] ?? 0) + 1;
+  }
+
+  const timestamp = new Date(message._creationTime);
+  const now = new Date();
+  const isToday = timestamp.toDateString() === now.toDateString();
+  const isThisYear = timestamp.getFullYear() === now.getFullYear();
+
+  let timeLabel = "";
+  if (isToday) {
+    timeLabel = timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } else if (isThisYear) {
+    timeLabel = timestamp.toLocaleDateString([], { month: "short", day: "numeric" }) + ", " +
+      timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } else {
+    timeLabel = timestamp.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }) + ", " +
+      timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   return (
-    <div
-      className={`flex flex-col ${isOwn ? "items-end" : "items-start"} mb-2 group`}
-    >
-      {/* Sender name for other user */}
-      {!isOwn && (
-        <p className="text-xs text-gray-400 ml-1 mb-1">
-          {message.sender?.name}
-        </p>
-      )}
-
-      <div className="flex items-end gap-1.5">
-        {/* Delete button (hover, own messages only) */}
-        {isOwn && !isDeleted && (
-          <button
-            onClick={() => deleteMessage({ messageId: message._id })}
-            className="opacity-0 group-hover:opacity-100 transition p-1 text-gray-300 hover:text-red-400"
-            title="Delete message"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+    <div className={`flex items-end gap-2 group ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+      {/* Avatar */}
+      <div className="w-8 flex-shrink-0 mb-1">
+        {showAvatar && !isMe && (
+          message.sender?.imageUrl ? (
+            <img src={message.sender.imageUrl} className="w-8 h-8 rounded-xl object-cover" />
+          ) : (
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+              {message.sender?.name?.[0]?.toUpperCase() ?? "?"}
+            </div>
+          )
         )}
+      </div>
 
-        {/* Message bubble */}
-        <div className="relative max-w-xs md:max-w-md lg:max-w-lg">
-          <div
-            className={`px-4 py-2 rounded-2xl text-sm cursor-default select-text ${
-              isDeleted
-                ? "bg-gray-100 text-gray-400 italic"
-                : isOwn
-                  ? "bg-blue-500 text-white rounded-br-sm"
-                  : "bg-gray-100 text-gray-800 rounded-bl-sm"
-            }`}
-            onDoubleClick={() => !isDeleted && setShowReactions((v) => !v)}
-            title={isDeleted ? "" : "Double-click to react"}
-          >
+      <div className={`flex flex-col max-w-[65%] ${isMe ? "items-end" : "items-start"}`}>
+        {/* Bubble */}
+        <div className="relative">
+          <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+            isMe ? "rounded-br-sm" : "rounded-bl-sm"
+          }`}
+            style={{
+              background: isDeleted
+                ? "var(--bg-tertiary)"
+                : isMe
+                ? "var(--accent)"
+                : "var(--bg-secondary)",
+              color: isDeleted ? "var(--text-secondary)" : "var(--text-primary)",
+              border: !isMe && !isDeleted ? "1px solid var(--border)" : "none",
+              fontStyle: isDeleted ? "italic" : "normal",
+            }}>
             {isDeleted ? "This message was deleted" : message.body}
           </div>
 
-          {/* Emoji picker popup */}
-          {showReactions && !isDeleted && (
-            <div
-              className={`absolute ${isOwn ? "right-0" : "left-0"} -top-11 flex gap-1 bg-white shadow-xl rounded-full px-3 py-1.5 border border-gray-100 z-20`}
-            >
-              {EMOJI_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => {
-                    toggleReaction({ messageId: message._id, emoji });
-                    setShowReactions(false);
-                  }}
-                  className="hover:scale-125 transition-transform text-lg"
-                >
-                  {emoji}
+          {/* Hover actions */}
+          {!isDeleted && (
+            <div className={`absolute top-0 ${isMe ? "left-0 -translate-x-full pr-2" : "right-0 translate-x-full pl-2"} hidden group-hover:flex items-center gap-1`}>
+              <button onClick={() => setShowReactions((s) => !s)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all"
+                style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border)" }}>
+                😊
+              </button>
+              {isMe && (
+                <button onClick={() => deleteMessage({ messageId: message._id })}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-all"
+                  style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border)" }}>
+                  🗑
                 </button>
-              ))}
+              )}
             </div>
           )}
         </div>
+
+        {/* Reaction picker */}
+        {showReactions && (
+          <div className="flex gap-1 mt-1 px-3 py-2 rounded-2xl shadow-xl"
+            style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
+            {REACTIONS.map((emoji) => (
+              <button key={emoji}
+                onClick={() => { toggleReaction({ messageId: message._id, emoji }); setShowReactions(false); }}
+                className="text-xl hover:scale-125 transition-transform">
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Reaction counts */}
+        {Object.keys(reactionMap).length > 0 && (
+          <div className="flex gap-1 mt-1 flex-wrap">
+            {Object.entries(reactionMap).map(([emoji, count]) => (
+              <button key={emoji}
+                onClick={() => toggleReaction({ messageId: message._id, emoji })}
+                className="text-xs px-2 py-0.5 rounded-full transition-all"
+                style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
+                {emoji} {count}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <p className="text-xs mt-1 px-1" style={{ color: "var(--text-secondary)" }}>{timeLabel}</p>
       </div>
-
-      {/* Reactions row */}
-      {Object.entries(reactionGroups).length > 0 && (
-        <div className="flex gap-1 mt-1 flex-wrap">
-          {Object.entries(reactionGroups).map(([emoji, { count, isMine }]) => (
-            <button
-              key={emoji}
-              onClick={() =>
-                toggleReaction({ messageId: message._id, emoji })
-              }
-              className={`flex items-center gap-0.5 text-xs rounded-full px-2 py-0.5 border transition ${
-                isMine
-                  ? "bg-blue-100 border-blue-300 text-blue-700"
-                  : "bg-gray-100 border-gray-200 text-gray-600"
-              }`}
-            >
-              <span>{emoji}</span>
-              <span>{count}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Timestamp */}
-      <span className="text-xs text-gray-400 mt-1 px-1">
-        {formatMessageTime(message._creationTime)}
-      </span>
     </div>
   );
 }

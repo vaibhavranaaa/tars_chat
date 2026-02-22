@@ -2,26 +2,23 @@
 
 import { useState, useRef } from "react";
 import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { Send } from "lucide-react";
+import { api } from "@/../convex/_generated/api";
+import { Id } from "@/../convex/_generated/dataModel";
 
-export default function MessageInput({
-  conversationId,
-}: {
-  conversationId: Id<"conversations">;
-}) {
-  const [text, setText] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [sendError, setSendError] = useState(false);
+type Props = { conversationId: Id<"conversations"> };
+
+export default function MessageInput({ conversationId }: Props) {
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState(false);
   const sendMessage = useMutation(api.messages.sendMessage);
   const setTyping = useMutation(api.typing.setTyping);
-  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const handleTyping = (value: string) => {
-    setText(value);
+    setBody(value);
+    setError(false);
     setTyping({ conversationId, isTyping: true });
-
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
       setTyping({ conversationId, isTyping: false });
@@ -29,25 +26,23 @@ export default function MessageInput({
   };
 
   const handleSend = async () => {
-    const trimmed = text.trim();
-    if (!trimmed || isSending) return;
-
-    setIsSending(true);
-    setSendError(false);
-
+    const trimmed = body.trim();
+    if (!trimmed || sending) return;
+    setSending(true);
+    setError(false);
     try {
       await sendMessage({ conversationId, body: trimmed });
-      setText("");
+      setBody("");
       if (typingTimeout.current) clearTimeout(typingTimeout.current);
       setTyping({ conversationId, isTyping: false });
     } catch {
-      setSendError(true);
+      setError(true);
     } finally {
-      setIsSending(false);
+      setSending(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -55,36 +50,47 @@ export default function MessageInput({
   };
 
   return (
-    <div className="px-4 py-3 border-t border-gray-200 bg-white">
-      {/* Error with retry */}
-      {sendError && (
-        <div className="flex items-center gap-2 mb-2 text-sm text-red-500">
-          <span>Failed to send message.</span>
-          <button
-            onClick={handleSend}
-            className="underline hover:text-red-700 font-medium"
-          >
-            Retry
-          </button>
+    <div className="px-4 py-4 flex-shrink-0"
+      style={{ background: "var(--bg-secondary)", borderTop: "1px solid var(--border)" }}>
+      {error && (
+        <div className="mb-2 px-3 py-2 rounded-xl text-xs flex items-center justify-between"
+          style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
+          <span>Failed to send message</span>
+          <button onClick={handleSend} className="underline ml-2">Retry</button>
         </div>
       )}
-
-      <div className="flex gap-2 items-end">
+      <div className="flex items-end gap-3">
         <textarea
-          rows={1}
-          value={text}
+          value={body}
           onChange={(e) => handleTyping(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
-          className="flex-1 resize-none rounded-2xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent max-h-32 overflow-auto leading-relaxed"
-          style={{ minHeight: "44px" }}
+          placeholder="Type a message..."
+          rows={1}
+          className="flex-1 resize-none px-4 py-3 rounded-2xl text-sm outline-none leading-relaxed"
+          style={{
+            background: "var(--bg-tertiary)",
+            border: "1px solid var(--border)",
+            color: "var(--text-primary)",
+            minHeight: "48px",
+            maxHeight: "128px",
+          }}
         />
         <button
           onClick={handleSend}
-          disabled={!text.trim() || isSending}
-          className="p-2.5 bg-blue-500 text-white rounded-2xl hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed transition flex-shrink-0"
+          disabled={!body.trim() || sending}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 flex-shrink-0"
+          style={{
+            background: body.trim() && !sending ? "var(--accent)" : "var(--bg-tertiary)",
+            color: body.trim() && !sending ? "white" : "var(--text-secondary)",
+          }}
         >
-          <Send className="w-4 h-4" />
+          {sending ? (
+            <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <svg className="w-5 h-5 rotate-90" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+          )}
         </button>
       </div>
     </div>
