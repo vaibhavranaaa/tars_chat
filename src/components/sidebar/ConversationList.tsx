@@ -1,33 +1,33 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { formatTimestamp } from "@/lib/utils";
 
-type Conversation = {
+interface Conversation {
   _id: string;
-  otherUser: { _id: string; name: string; imageUrl?: string; isOnline: boolean; } | null;
   lastMessageTime: number;
   lastMessagePreview?: string;
+  otherUser: { name: string; imageUrl?: string; isOnline: boolean } | null;
   unreadCount: number;
-};
+}
 
-type Props = {
+interface Props {
   conversations: Conversation[] | undefined;
-  activeConversationId: string | undefined;
-};
+}
 
-export default function ConversationList({ conversations, activeConversationId }: Props) {
+export default function ConversationList({ conversations }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
 
   if (conversations === undefined) {
     return (
-      <div className="flex-1 p-4 space-y-3">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="flex items-center gap-3 px-2 animate-pulse">
-            <div className="w-12 h-12 rounded-2xl" style={{ background: "var(--bg-tertiary)" }} />
-            <div className="flex-1 space-y-2">
-              <div className="h-3 rounded-lg w-2/3" style={{ background: "var(--bg-tertiary)" }} />
-              <div className="h-3 rounded-lg w-1/2" style={{ background: "var(--bg-tertiary)" }} />
+      <div style={{ display: "flex", flexDirection: "column", gap: "4px", padding: "8px 12px" }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "12px", borderRadius: "12px", background: "#1a1a24" }}>
+            <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "#222230", flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ height: "13px", borderRadius: "6px", background: "#222230", width: "65%", marginBottom: "8px" }} />
+              <div style={{ height: "11px", borderRadius: "6px", background: "#222230", width: "45%" }} />
             </div>
           </div>
         ))}
@@ -37,66 +37,89 @@ export default function ConversationList({ conversations, activeConversationId }
 
   if (conversations.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-2xl"
-          style={{ background: "var(--accent-soft)" }}>💬</div>
-        <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>No conversations yet</p>
-        <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>
-          Click search to find someone to chat with
-        </p>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "180px", textAlign: "center", padding: "24px" }}>
+        <p style={{ fontSize: "28px", marginBottom: "10px" }}>💬</p>
+        <p style={{ fontSize: "13px", fontWeight: 600, color: "#f0f0ff", fontFamily: "'Syne', sans-serif", margin: "0 0 4px" }}>No conversations yet</p>
+        <p style={{ fontSize: "12px", color: "#55556a", margin: 0 }}>Search for someone to start chatting</p>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 pb-4">
-      {conversations.map((conv) => {
-        const isActive = conv._id === activeConversationId;
-        const other = conv.otherUser;
+    <div style={{ display: "flex", flexDirection: "column", gap: "2px", padding: "8px 12px" }}>
+      {conversations.map(conv => {
+        if (!conv.otherUser) return null;
+        const isActive = pathname === `/chat/${conv._id}`;
+        const initials = conv.otherUser.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
 
         return (
           <button
             key={conv._id}
             onClick={() => router.push(`/chat/${conv._id}`)}
-            className="w-full px-3 py-3 flex items-center gap-3 rounded-2xl mb-1 transition-all duration-200 text-left"
             style={{
-              background: isActive ? "var(--accent-soft)" : "transparent",
-              border: isActive ? "1px solid rgba(124,106,255,0.3)" : "1px solid transparent",
+              display: "flex", alignItems: "center", gap: "10px", padding: "10px 12px",
+              borderRadius: "12px", cursor: "pointer", textAlign: "left", width: "100%",
+              background: isActive ? "#1e1e2e" : "transparent",
+              border: isActive ? "1px solid rgba(108,99,255,0.3)" : "1px solid transparent",
+              transition: "all 0.15s"
+            }}
+            onMouseEnter={e => {
+              if (!isActive) {
+                (e.currentTarget as HTMLElement).style.background = "#1a1a24";
+                (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)";
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isActive) {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.borderColor = "transparent";
+              }
             }}
           >
-            <div className="relative flex-shrink-0">
-              {other?.imageUrl ? (
-                <img src={other.imageUrl} alt={other.name}
-                  className="w-12 h-12 rounded-2xl object-cover" />
+            {/* Avatar */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              {conv.otherUser.imageUrl ? (
+                <img src={conv.otherUser.imageUrl} alt={conv.otherUser.name}
+                  style={{ width: "44px", height: "44px", borderRadius: "50%", objectFit: "cover" }} />
               ) : (
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-                  {other?.name?.[0]?.toUpperCase() ?? "?"}
-                </div>
+                <div style={{
+                  width: "44px", height: "44px", borderRadius: "50%", background: "#6c63ff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "14px", fontWeight: 700, color: "white", fontFamily: "'Syne', sans-serif"
+                }}>{initials}</div>
               )}
-              {other?.isOnline && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
-                  style={{ background: "var(--online)", borderColor: "var(--bg-secondary)" }} />
-              )}
+              <span style={{
+                position: "absolute", bottom: 0, right: 0, width: "11px", height: "11px",
+                borderRadius: "50%", background: conv.otherUser.isOnline ? "#22d3a0" : "#55556a",
+                border: "2px solid #111118"
+              }} />
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold truncate"
-                  style={{ color: isActive ? "var(--accent)" : "var(--text-primary)" }}>
-                  {other?.name ?? "Unknown"}
-                </p>
-                <p className="text-xs flex-shrink-0 ml-2" style={{ color: "var(--text-secondary)" }}>
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "4px", marginBottom: "3px" }}>
+                <span style={{
+                  fontSize: "13px", fontWeight: conv.unreadCount > 0 ? 700 : 600,
+                  color: "#f0f0ff", fontFamily: "'Syne', sans-serif",
+                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+                }}>{conv.otherUser.name}</span>
+                <span style={{ fontSize: "10px", color: "#55556a", flexShrink: 0 }}>
                   {formatTimestamp(conv.lastMessageTime)}
-                </p>
+                </span>
               </div>
-              <div className="flex items-center justify-between mt-0.5">
-                <p className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>
-                  {conv.lastMessagePreview ?? "Start a conversation"}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "4px" }}>
+                <p style={{
+                  fontSize: "12px", color: conv.unreadCount > 0 ? "#8888aa" : "#55556a",
+                  margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+                }}>
+                  {conv.lastMessagePreview ?? "No messages yet"}
                 </p>
                 {conv.unreadCount > 0 && (
-                  <span className="ml-2 flex-shrink-0 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center"
-                    style={{ background: "var(--accent)" }}>
+                  <span style={{
+                    flexShrink: 0, width: "18px", height: "18px", borderRadius: "50%",
+                    background: "#6c63ff", color: "white", fontSize: "10px",
+                    fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center"
+                  }}>
                     {conv.unreadCount > 9 ? "9+" : conv.unreadCount}
                   </span>
                 )}

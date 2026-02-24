@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 import { useQuery } from "convex/react";
-import { api } from "@/../convex/_generated/api";
-import { Id } from "@/../convex/_generated/dataModel";
+import { useUser } from "@clerk/nextjs";
+import { api } from "convex/_generated/api";
+import { Id } from "convex/_generated/dataModel";
 
 type Props = { onSelectUser: (userId: Id<"users">) => Promise<void>; };
 
 export default function UserSearch({ onSelectUser }: Props) {
   const [search, setSearch] = useState("");
-  const users = useQuery(api.users.getAllUsers, { search });
-
-  // Add this right after the useQuery line:
-console.log("users result:", users);
-console.log("search:", search);
+  const { user } = useUser();
+  const users = useQuery(api.users.getAllUsers, {
+    clerkId: user?.id ?? "",
+    search,
+  });
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -59,20 +60,35 @@ console.log("search:", search);
             className="w-full px-3 py-3 flex items-center gap-3 rounded-xl mb-1 transition-all text-left"
             style={{ background: "var(--bg-tertiary)", border: "1px solid var(--border)" }}
           >
-            <div className="relative flex-shrink-0">
-              {u.imageUrl ? (
-                <img src={u.imageUrl} alt={u.name} className="w-10 h-10 rounded-xl object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold"
-                  style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-                  {u.name[0]?.toUpperCase()}
-                </div>
-              )}
-              {u.isOnline && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
-                  style={{ background: "var(--online)", borderColor: "var(--bg-secondary)" }} />
-              )}
-            </div>
+            <div className="relative flex-shrink-0 w-10 h-10 overflow-hidden rounded-xl">
+  {u.imageUrl && (
+    <img
+      src={u.imageUrl}
+      alt={u.name}
+      className="absolute inset-0 w-full h-full object-cover"
+      referrerPolicy="no-referrer"
+      onError={(e) => {
+        e.currentTarget.style.display = "none";
+        e.currentTarget.nextElementSibling?.removeAttribute("hidden");
+      }}
+    />
+  )}
+
+  <div
+    hidden={!!u.imageUrl}
+    className="absolute inset-0 flex items-center justify-center font-bold"
+    style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+  >
+    {u.name[0]?.toUpperCase()}
+  </div>
+
+  {u.isOnline && (
+    <span
+      className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+      style={{ background: "var(--online)", borderColor: "var(--bg-secondary)" }}
+    />
+  )}
+</div>
             <div className="min-w-0">
               <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{u.name}</p>
               <p className="text-xs" style={{ color: u.isOnline ? "var(--online)" : "var(--text-secondary)" }}>

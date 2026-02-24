@@ -45,8 +45,12 @@ export default function ConversationItem({ conversation }: Props) {
       {/* Avatar */}
       <div className="relative flex-shrink-0">
         {otherUser.imageUrl ? (
-          <img src={otherUser.imageUrl} alt={otherUser.name}
-            className="w-11 h-11 rounded-full object-cover" />
+          <img
+            src={otherUser.imageUrl}
+            alt={otherUser.name}
+            className="w-11 h-11 rounded-full object-cover"
+            referrerPolicy="no-referrer"
+          />
         ) : (
           <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold"
             style={{ background: "var(--accent)", color: "white", fontFamily: "'Syne', sans-serif" }}>

@@ -1,10 +1,14 @@
+"use client";
+
+import { use } from "react";
 import ChatArea from "@/components/chat/ChatArea";
 import { Id } from "@/../convex/_generated/dataModel";
 
 export default function ConversationPage({
   params,
 }: {
-  params: { conversationId: string };
+  params: Promise<{ conversationId: string }>;
 }) {
-  return <ChatArea conversationId={params.conversationId as Id<"conversations">} />;
+  const { conversationId } = use(params);
+  return <ChatArea conversationId={conversationId as Id<"conversations">} />;
 }

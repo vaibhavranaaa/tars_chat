@@ -2,97 +2,86 @@
 
 import { useState, useRef } from "react";
 import { useMutation } from "convex/react";
-import { api } from "@/../convex/_generated/api";
-import { Id } from "@/../convex/_generated/dataModel";
+import { api } from "convex/_generated/api";
+import { Id } from "convex/_generated/dataModel";
 
-type Props = { conversationId: Id<"conversations"> };
-
-export default function MessageInput({ conversationId }: Props) {
-  const [body, setBody] = useState("");
-  const [sending, setSending] = useState(false);
+export default function MessageInput({ conversationId }: { conversationId: Id<"conversations"> }) {
+  const [text, setText] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState(false);
   const sendMessage = useMutation(api.messages.sendMessage);
   const setTyping = useMutation(api.typing.setTyping);
-  const typingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTyping = (value: string) => {
-    setBody(value);
-    setError(false);
+    setText(value);
     setTyping({ conversationId, isTyping: true });
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
-    typingTimeout.current = setTimeout(() => {
-      setTyping({ conversationId, isTyping: false });
-    }, 2000);
+    typingTimeout.current = setTimeout(() => setTyping({ conversationId, isTyping: false }), 2000);
   };
 
   const handleSend = async () => {
-    const trimmed = body.trim();
-    if (!trimmed || sending) return;
-    setSending(true);
+    const trimmed = text.trim();
+    if (!trimmed || isSending) return;
+    setIsSending(true);
     setError(false);
     try {
       await sendMessage({ conversationId, body: trimmed });
-      setBody("");
+      setText("");
       if (typingTimeout.current) clearTimeout(typingTimeout.current);
       setTyping({ conversationId, isTyping: false });
     } catch {
       setError(true);
     } finally {
-      setSending(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+      setIsSending(false);
     }
   };
 
   return (
-    <div className="px-4 py-4 flex-shrink-0"
-      style={{ background: "var(--bg-secondary)", borderTop: "1px solid var(--border)" }}>
+    <div style={{
+      padding: "12px 16px 16px", borderTop: "1px solid rgba(255,255,255,0.07)",
+      background: "#111118", flexShrink: 0
+    }}>
       {error && (
-        <div className="mb-2 px-3 py-2 rounded-xl text-xs flex items-center justify-between"
-          style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}>
-          <span>Failed to send message</span>
-          <button onClick={handleSend} className="underline ml-2">Retry</button>
+        <div style={{ fontSize: "12px", color: "#ff6b6b", marginBottom: "8px", display: "flex", gap: "8px" }}>
+          <span>Failed to send.</span>
+          <button onClick={handleSend} style={{ background: "none", border: "none", color: "#ff6b6b", cursor: "pointer", textDecoration: "underline" }}>Retry</button>
         </div>
       )}
-      <div className="flex items-end gap-3">
+
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "10px" }}>
         <textarea
-          value={body}
-          onChange={(e) => handleTyping(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
           rows={1}
-          className="flex-1 resize-none px-4 py-3 rounded-2xl text-sm outline-none leading-relaxed"
+          value={text}
+          onChange={e => handleTyping(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+          placeholder="Type a message..."
           style={{
-            background: "var(--bg-tertiary)",
-            border: "1px solid var(--border)",
-            color: "var(--text-primary)",
-            minHeight: "48px",
-            maxHeight: "128px",
+            flex: 1, padding: "12px 16px", borderRadius: "16px", resize: "none",
+            background: "#1a1a24", border: "1px solid rgba(255,255,255,0.07)",
+            color: "#f0f0ff", fontSize: "14px", outline: "none",
+            fontFamily: "'DM Sans', sans-serif", minHeight: "46px", maxHeight: "120px",
+            lineHeight: "1.5", overflowY: "auto", transition: "border-color 0.2s"
           }}
+          onFocus={e => (e.target.style.borderColor = "#6c63ff")}
+          onBlur={e => (e.target.style.borderColor = "rgba(255,255,255,0.07)")}
         />
         <button
           onClick={handleSend}
-          disabled={!body.trim() || sending}
-          className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-200 flex-shrink-0"
+          disabled={!text.trim() || isSending}
           style={{
-            background: body.trim() && !sending ? "var(--accent)" : "var(--bg-tertiary)",
-            color: body.trim() && !sending ? "white" : "var(--text-secondary)",
+            width: "46px", height: "46px", borderRadius: "14px", border: "none",
+            background: text.trim() && !isSending ? "#6c63ff" : "#1a1a24",
+            cursor: text.trim() && !isSending ? "pointer" : "not-allowed",
+            fontSize: "18px", flexShrink: 0, transition: "all 0.2s",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            opacity: text.trim() && !isSending ? 1 : 0.4
           }}
-        >
-          {sending ? (
-            <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <svg className="w-5 h-5 rotate-90" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-            </svg>
-          )}
-        </button>
+        >➤</button>
       </div>
+      <p style={{ fontSize: "10px", color: "#55556a", textAlign: "center", margin: "8px 0 0" }}>
+        Enter to send · Shift+Enter for new line
+      </p>
     </div>
   );
 }

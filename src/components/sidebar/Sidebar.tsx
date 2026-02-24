@@ -1,22 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { UserButton } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
-import { useRouter, useParams } from "next/navigation";
-import { api } from "@/../convex/_generated/api";
-import { Id } from "@/../convex/_generated/dataModel";
-import { useUser, UserButton } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { api } from "convex/_generated/api";
+import { Id } from "convex/_generated/dataModel";
 import ConversationList from "./ConversationList";
 import UserSearch from "./UserSearch";
 
 export default function Sidebar() {
   const [showSearch, setShowSearch] = useState(false);
-  const { user } = useUser();
-  const router = useRouter();
-  const params = useParams();
-  const activeConversationId = params?.conversationId as string | undefined;
+  const currentUser = useQuery(api.users.getCurrentUser);
   const conversations = useQuery(api.conversations.getMyConversations);
   const getOrCreate = useMutation(api.conversations.getOrCreateConversation);
+  const router = useRouter();
 
   const handleSelectUser = async (userId: Id<"users">) => {
     const convId = await getOrCreate({ otherUserId: userId });
@@ -25,89 +23,80 @@ export default function Sidebar() {
   };
 
   return (
-    <div
-      className="w-80 min-w-[320px] flex-shrink-0 flex flex-col h-screen"
-      style={{ background: "var(--bg-secondary)", borderRight: "1px solid var(--border)" }}
-    >
-      {/* Header */}
-      <div
-        className="px-4 py-4 flex items-center justify-between gap-2"
-        style={{ borderBottom: "1px solid var(--border)" }}
-      >
-        {/* Left: avatar + name + status */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="relative flex-shrink-0">
-            <UserButton afterSignOutUrl="/sign-in" />
-            <span
-              className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 pointer-events-none"
-              style={{ background: "var(--online)", borderColor: "var(--bg-secondary)" }}
-            />
-          </div>
-          <div className="min-w-0">
-            <p
-              className="text-sm font-semibold truncate leading-none mb-1"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {user?.firstName ?? "You"}
-            </p>
-            <p
-              className="text-xs font-medium leading-none"
-              style={{ color: "var(--online)" }}
-            >
-              ● Active now
-            </p>
-          </div>
+    <div style={{
+      display: "flex", flexDirection: "column", height: "100%", width: "100%",
+      background: "#111118", borderRight: "1px solid rgba(255,255,255,0.07)",
+      fontFamily: "'DM Sans', sans-serif", overflow: "hidden"
+    }}>
+
+      {/* ── Header ── */}
+      <div style={{ padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
+
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+          <div style={{
+            width: "28px", height: "28px", borderRadius: "8px", background: "#6c63ff",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", flexShrink: 0
+          }}>⚡</div>
+          <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: "14px", color: "#f0f0ff" }}>
+            TarsChat
+          </span>
         </div>
 
-        {/* Right: search button */}
-        <button
-          onClick={() => setShowSearch((s) => !s)}
-          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-200"
-          style={{
-            background: showSearch ? "var(--accent)" : "var(--accent-soft)",
-            color: showSearch ? "white" : "var(--accent)",
-            border: "1px solid rgba(124,106,255,0.3)",
-          }}
-        >
-          {showSearch ? (
-            <>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Close
-            </>
-          ) : (
-            <>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Search
-            </>
-          )}
-        </button>
+        {/* User row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0, flex: 1 }}>
+            <div style={{ position: "relative", flexShrink: 0, width: "32px", height: "32px" }}>
+              <UserButton
+                afterSignOutUrl="/sign-in"
+                appearance={{ elements: { avatarBox: { width: "32px", height: "32px" } } }}
+              />
+              <span style={{
+                position: "absolute", bottom: "-1px", right: "-1px", width: "10px", height: "10px",
+                borderRadius: "50%", background: "#22d3a0", border: "2px solid #111118", pointerEvents: "none"
+              }} />
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <p style={{ fontSize: "13px", fontWeight: 600, color: "#f0f0ff", lineHeight: 1, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {currentUser?.name ?? "..."}
+              </p>
+              <p style={{ fontSize: "11px", color: "#22d3a0", marginTop: "3px", margin: "3px 0 0" }}>Active now</p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowSearch(v => !v)}
+            style={{
+              flexShrink: 0, width: "34px", height: "34px", borderRadius: "10px",
+              background: showSearch ? "#6c63ff" : "#1a1a24",
+              border: "1px solid rgba(255,255,255,0.07)",
+              cursor: "pointer", display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: "15px", transition: "all 0.2s"
+            }}
+            title={showSearch ? "Back to chats" : "Search users"}
+          >
+            {showSearch ? "✕" : "🔍"}
+          </button>
+        </div>
       </div>
 
-      {/* Title - only when not searching */}
-      {!showSearch && (
-        <div className="px-5 pt-5 pb-2">
-          <h1 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
-            Messages
-          </h1>
-          <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
-            {conversations?.length ?? 0} conversation{conversations?.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-      )}
+      {/* ── Section label ── */}
+      <div style={{ padding: "14px 20px 6px", flexShrink: 0 }}>
+        <p style={{
+          fontSize: "10px", fontWeight: 700, textTransform: "uppercase",
+          letterSpacing: "2px", color: "#55556a", fontFamily: "'Syne', sans-serif", margin: 0
+        }}>
+          {showSearch ? "Find People" : `Messages · ${conversations?.length ?? 0}`}
+        </p>
+      </div>
 
-      {/* Content */}
-      {showSearch ? (
-        <UserSearch onSelectUser={handleSelectUser} />
-      ) : (
-        <ConversationList
-          conversations={conversations}
-          activeConversationId={activeConversationId}
-        />
-      )}
+      {/* ── Scrollable body ── */}
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+        {showSearch
+          ? <UserSearch onSelectUser={handleSelectUser} />
+          : <ConversationList conversations={conversations} />
+        }
+      </div>
     </div>
   );
 }

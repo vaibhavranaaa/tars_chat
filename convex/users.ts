@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
-// Get current logged-in user from DB
 export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
@@ -14,7 +13,6 @@ export const getCurrentUser = query({
   },
 });
 
-// Get all users except current user, with optional search
 export const getAllUsers = query({
   args: { search: v.optional(v.string()) },
   handler: async (ctx, { search }) => {
@@ -29,11 +27,8 @@ export const getAllUsers = query({
     if (!currentUser) return [];
 
     let users = await ctx.db.query("users").collect();
-
-    // Exclude self
     users = users.filter((u) => u._id !== currentUser._id);
 
-    // Filter by search term
     if (search && search.trim()) {
       const lower = search.toLowerCase();
       users = users.filter((u) => u.name.toLowerCase().includes(lower));
@@ -43,7 +38,6 @@ export const getAllUsers = query({
   },
 });
 
-// Get a single user by ID
 export const getUserById = query({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
@@ -51,7 +45,6 @@ export const getUserById = query({
   },
 });
 
-// Create or update user — called from Clerk webhook
 export const upsertUser = mutation({
   args: {
     clerkId: v.string(),
@@ -82,7 +75,6 @@ export const upsertUser = mutation({
   },
 });
 
-// Set online/offline status
 export const setOnlineStatus = mutation({
   args: { isOnline: v.boolean() },
   handler: async (ctx, { isOnline }) => {
@@ -95,10 +87,7 @@ export const setOnlineStatus = mutation({
       .unique();
 
     if (user) {
-      await ctx.db.patch(user._id, {
-        isOnline,
-        lastSeen: Date.now(),
-      });
+      await ctx.db.patch(user._id, { isOnline, lastSeen: Date.now() });
     }
   },
 });

@@ -1,93 +1,130 @@
 "use client";
 
 import { useQuery, useMutation } from "convex/react";
-import { api } from "@/../convex/_generated/api";
-import { Id } from "@/../convex/_generated/dataModel";
+import { api } from "convex/_generated/api";
+import { Id } from "convex/_generated/dataModel";
 import { useEffect } from "react";
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
+import TypingIndicator from "./TypingIndicator";
 import { useRouter } from "next/navigation";
 
-type Props = { conversationId: Id<"conversations"> };
-
-export default function ChatArea({ conversationId }: Props) {
-  const router = useRouter();
-  const conversation = useQuery(api.conversations.getConversation, { conversationId });
+export default function ChatArea({ conversationId }: { conversationId: string }) {
+  const convId = conversationId as Id<"conversations">;
+  const conversation = useQuery(api.conversations.getConversation, { conversationId: convId });
   const markAsRead = useMutation(api.conversations.markAsRead);
+  const router = useRouter();
 
   useEffect(() => {
-    if (conversationId) markAsRead({ conversationId });
-  }, [conversationId]);
+    if (conversation) markAsRead({ conversationId: convId });
+  }, [conversationId, conversation, markAsRead, convId]);
 
   if (conversation === undefined) {
     return (
-      <div className="flex-1 flex flex-col" style={{ background: "var(--bg-primary)" }}>
-        <div className="px-6 py-4 flex items-center gap-3 animate-pulse"
-          style={{ borderBottom: "1px solid var(--border)", background: "var(--bg-secondary)" }}>
-          <div className="w-10 h-10 rounded-2xl" style={{ background: "var(--bg-tertiary)" }} />
-          <div className="space-y-2">
-            <div className="h-3 rounded w-32" style={{ background: "var(--bg-tertiary)" }} />
-            <div className="h-2 rounded w-20" style={{ background: "var(--bg-tertiary)" }} />
-          </div>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0f" }}>
+        <div style={{ display: "flex", gap: "6px" }}>
+          {[0,1,2].map(i => (
+            <div key={i} style={{
+              width: "8px", height: "8px", borderRadius: "50%", background: "#6c63ff",
+              animation: "bounce 1.2s ease infinite", animationDelay: `${i*0.2}s`
+            }} />
+          ))}
         </div>
-        <div className="flex-1" />
       </div>
     );
   }
 
-  if (conversation === null) {
+  if (!conversation) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ background: "var(--bg-primary)" }}>
-        <div className="text-center">
-          <p className="text-5xl mb-3">🚫</p>
-          <p style={{ color: "var(--text-secondary)" }}>Conversation not found</p>
-          <button onClick={() => router.push("/chat")}
-            className="mt-4 text-sm hover:underline" style={{ color: "var(--accent)" }}>
-            Go back
-          </button>
-        </div>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0f", color: "#55556a" }}>
+        Conversation not found.
       </div>
     );
   }
 
-  const other = conversation.otherUser;
+  const { otherUser } = conversation;
+  const initials = otherUser?.name?.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) ?? "?";
 
   return (
-    <div className="flex-1 flex flex-col h-screen" style={{ background: "var(--bg-primary)" }}>
-      {/* Header */}
-      <div className="px-6 py-4 flex items-center gap-4 flex-shrink-0"
-        style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border)" }}>
-        <button onClick={() => router.push("/chat")}
-          className="md:hidden w-8 h-8 rounded-xl flex items-center justify-center"
-          style={{ background: "var(--bg-tertiary)", color: "var(--text-secondary)" }}>
-          ←
-        </button>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0a0a0f", overflow: "hidden" }}>
 
-        <div className="relative">
-          {other?.imageUrl ? (
-            <img src={other.imageUrl} alt={other.name} className="w-11 h-11 rounded-2xl object-cover" />
-          ) : (
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-lg"
-              style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-              {other?.name?.[0]?.toUpperCase() ?? "?"}
-            </div>
-          )}
-          {other?.isOnline && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
-              style={{ background: "var(--online)", borderColor: "var(--bg-secondary)" }} />
+      {/* ── Header ── */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)",
+        background: "#111118", flexShrink: 0
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* Back button mobile */}
+          <button
+            onClick={() => router.push("/chat")}
+            style={{
+              display: "none", width: "32px", height: "32px", borderRadius: "8px",
+              background: "#1a1a24", border: "1px solid rgba(255,255,255,0.07)",
+              cursor: "pointer", alignItems: "center", justifyContent: "center", fontSize: "16px"
+            }}
+            className="mobile-back"
+          >←</button>
+
+          {otherUser && (
+            <>
+              {/* Avatar - fixed small size */}
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                {otherUser.imageUrl ? (
+                  <img
+                    src={otherUser.imageUrl}
+                    alt={otherUser.name}
+                    style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover", display: "block" }}
+                  />
+                ) : (
+                  <div style={{
+                    width: "40px", height: "40px", borderRadius: "50%", background: "#6c63ff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: "14px", fontWeight: 700, color: "white",
+                    fontFamily: "'Syne', sans-serif", flexShrink: 0
+                  }}>{initials}</div>
+                )}
+                <span style={{
+                  position: "absolute", bottom: 0, right: 0,
+                  width: "10px", height: "10px", borderRadius: "50%",
+                  background: otherUser.isOnline ? "#22d3a0" : "#55556a",
+                  border: "2px solid #111118"
+                }} />
+              </div>
+
+              <div>
+                <p style={{ fontSize: "14px", fontWeight: 700, color: "#f0f0ff", margin: 0, fontFamily: "'Syne', sans-serif" }}>
+                  {otherUser.name}
+                </p>
+                <p style={{ fontSize: "11px", color: otherUser.isOnline ? "#22d3a0" : "#55556a", margin: "2px 0 0" }}>
+                  {otherUser.isOnline ? "● Active now" : "○ Offline"}
+                </p>
+              </div>
+            </>
           )}
         </div>
 
-        <div className="flex-1">
-          <p className="font-semibold" style={{ color: "var(--text-primary)" }}>{other?.name}</p>
-          <p className="text-xs" style={{ color: other?.isOnline ? "var(--online)" : "var(--text-secondary)" }}>
-            {other?.isOnline ? "● Active now" : "Offline"}
-          </p>
+        {/* Action buttons */}
+        <div style={{ display: "flex", gap: "6px" }}>
+          {["📞", "🎥", "⋯"].map((icon, i) => (
+            <button key={i} style={{
+              width: "34px", height: "34px", borderRadius: "10px",
+              background: "#1a1a24", border: "1px solid rgba(255,255,255,0.07)",
+              cursor: "pointer", fontSize: "14px", display: "flex",
+              alignItems: "center", justifyContent: "center"
+            }}>{icon}</button>
+          ))}
         </div>
       </div>
 
-      <MessageList conversationId={conversationId} />
-      <MessageInput conversationId={conversationId} />
+      {/* ── Messages ── */}
+      <MessageList conversationId={convId} />
+
+      {/* ── Typing indicator ── */}
+      <TypingIndicator conversationId={convId} />
+
+      {/* ── Input ── */}
+      <MessageInput conversationId={convId} />
     </div>
   );
 }
