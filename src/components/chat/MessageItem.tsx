@@ -6,7 +6,7 @@ import { Id } from "convex/_generated/dataModel";
 import { formatMessageTime } from "@/lib/utils";
 import { useState } from "react";
 
-const EMOJIS = ["👍", "❤️", "😂", "😮", "😢"];
+const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
 
 interface Message {
   _id: Id<"messages">;
@@ -26,6 +26,7 @@ export default function MessageItem({ message, isOwn, currentUserId }: {
   const deleteMessage = useMutation(api.messages.deleteMessage);
   const toggleReaction = useMutation(api.messages.toggleReaction);
   const [showEmojis, setShowEmojis] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const isDeleted = !!message.deletedAt;
 
   const groups: Record<string, { count: number; isMine: boolean }> = {};
@@ -36,12 +37,14 @@ export default function MessageItem({ message, isOwn, currentUserId }: {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: isOwn ? "flex-end" : "flex-start", marginBottom: "6px" }}
-      className="group">
-
+    <div
+      style={{ display: "flex", flexDirection: "column", alignItems: isOwn ? "flex-end" : "flex-start", marginBottom: "8px" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); }}
+    >
       {/* Sender name */}
       {!isOwn && (
-        <p style={{ fontSize: "11px", color: "#55556a", margin: "0 0 3px 4px", fontFamily: "'Syne', sans-serif" }}>
+        <p style={{ fontSize: "11px", color: "#3a3a5a", margin: "0 0 3px 4px", fontFamily: "'Syne', sans-serif", fontWeight: 600 }}>
           {message.sender?.name}
         </p>
       )}
@@ -52,13 +55,13 @@ export default function MessageItem({ message, isOwn, currentUserId }: {
           <button
             onClick={() => deleteMessage({ messageId: message._id })}
             style={{
-              opacity: 0, background: "none", border: "none", cursor: "pointer",
-              fontSize: "12px", color: "#55556a", padding: "4px", borderRadius: "6px",
-              transition: "opacity 0.2s"
+              opacity: hovered ? 1 : 0, background: "none", border: "none",
+              cursor: "pointer", fontSize: "12px", color: "#3a3a5a",
+              padding: "4px", borderRadius: "6px", transition: "all 0.2s"
             }}
-            className="delete-btn"
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = "#ff6b6b"}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "#55556a"}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = "#3a3a5a"}
+            title="Delete message"
           >🗑</button>
         )}
 
@@ -67,15 +70,25 @@ export default function MessageItem({ message, isOwn, currentUserId }: {
           <div
             onDoubleClick={() => !isDeleted && setShowEmojis(v => !v)}
             style={{
-              padding: "10px 14px", borderRadius: "18px",
-              borderBottomRightRadius: isOwn ? "4px" : "18px",
-              borderBottomLeftRadius: isOwn ? "18px" : "4px",
-              fontSize: "14px", lineHeight: "1.5", cursor: "default",
-              background: isDeleted ? "#1a1a24" : isOwn ? "#6c63ff" : "#1e1e2e",
-              color: isDeleted ? "#55556a" : "#f0f0ff",
+              padding: "10px 14px",
+              borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+              fontSize: "14px", lineHeight: "1.6", cursor: "default", wordBreak: "break-word",
+              background: isDeleted
+                ? "rgba(255,255,255,0.03)"
+                : isOwn
+                  ? "linear-gradient(135deg, #6c63ff, #8b7ff5)"
+                  : "rgba(255,255,255,0.05)",
+              color: isDeleted ? "#3a3a5a" : "#f0f0ff",
               fontStyle: isDeleted ? "italic" : "normal",
-              border: isDeleted ? "1px solid rgba(255,255,255,0.07)" : "none",
-              wordBreak: "break-word"
+              border: isDeleted
+                ? "1px solid rgba(255,255,255,0.05)"
+                : isOwn
+                  ? "none"
+                  : "1px solid rgba(255,255,255,0.07)",
+              boxShadow: isOwn && !isDeleted
+                ? "0 4px 20px rgba(108,99,255,0.25)"
+                : "none",
+              transition: "transform 0.1s"
             }}
             title={isDeleted ? "" : "Double-click to react"}
           >
@@ -85,15 +98,23 @@ export default function MessageItem({ message, isOwn, currentUserId }: {
           {/* Emoji picker */}
           {showEmojis && !isDeleted && (
             <div style={{
-              position: "absolute", [isOwn ? "right" : "left"]: 0, bottom: "calc(100% + 6px)",
-              display: "flex", gap: "4px", background: "#1e1e2e", padding: "8px 12px",
-              borderRadius: "999px", border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)", zIndex: 10
+              position: "absolute",
+              [isOwn ? "right" : "left"]: 0,
+              bottom: "calc(100% + 8px)",
+              display: "flex", gap: "2px",
+              background: "#1a1a2e", padding: "8px 12px",
+              borderRadius: "999px", border: "1px solid rgba(108,99,255,0.2)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)",
+              zIndex: 10
             }}>
               {EMOJIS.map(emoji => (
-                <button key={emoji} onClick={() => { toggleReaction({ messageId: message._id, emoji }); setShowEmojis(false); }}
-                  style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", transition: "transform 0.1s" }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = "scale(1.3)"}
+                <button key={emoji}
+                  onClick={() => { toggleReaction({ messageId: message._id, emoji }); setShowEmojis(false); }}
+                  style={{
+                    background: "none", border: "none", fontSize: "20px",
+                    cursor: "pointer", transition: "transform 0.1s", padding: "2px 4px", borderRadius: "8px"
+                  }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = "scale(1.35)"}
                   onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = "scale(1)"}
                 >{emoji}</button>
               ))}
@@ -109,10 +130,11 @@ export default function MessageItem({ message, isOwn, currentUserId }: {
             <button key={emoji}
               onClick={() => toggleReaction({ messageId: message._id, emoji })}
               style={{
-                display: "flex", alignItems: "center", gap: "3px", fontSize: "12px",
-                padding: "2px 8px", borderRadius: "999px", cursor: "pointer",
-                background: isMine ? "rgba(108,99,255,0.2)" : "#1e1e2e",
-                border: `1px solid ${isMine ? "#6c63ff" : "rgba(255,255,255,0.07)"}`,
+                display: "flex", alignItems: "center", gap: "3px",
+                fontSize: "12px", padding: "3px 8px", borderRadius: "999px",
+                cursor: "pointer", transition: "all 0.15s",
+                background: isMine ? "rgba(108,99,255,0.2)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${isMine ? "rgba(108,99,255,0.4)" : "rgba(255,255,255,0.07)"}`,
                 color: isMine ? "#a78bfa" : "#8888aa"
               }}
             >{emoji} {count}</button>
@@ -120,8 +142,11 @@ export default function MessageItem({ message, isOwn, currentUserId }: {
         </div>
       )}
 
-      {/* Time */}
-      <span style={{ fontSize: "10px", color: "#55556a", marginTop: "3px", padding: "0 4px" }}>
+      {/* Timestamp */}
+      <span style={{
+        fontSize: "10px", color: "#2a2a3a", marginTop: "4px",
+        padding: "0 4px", opacity: hovered ? 1 : 0.6, transition: "opacity 0.2s"
+      }}>
         {formatMessageTime(message._creationTime)}
       </span>
     </div>

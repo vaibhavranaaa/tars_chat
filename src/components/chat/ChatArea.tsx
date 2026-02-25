@@ -26,7 +26,7 @@ export default function ChatArea({ conversationId }: { conversationId: string })
           {[0,1,2].map(i => (
             <div key={i} style={{
               width: "8px", height: "8px", borderRadius: "50%", background: "#6c63ff",
-              animation: "bounce 1.2s ease infinite", animationDelay: `${i*0.2}s`
+              animation: "bounce 1.2s ease infinite", animationDelay: `${i * 0.2}s`
             }} />
           ))}
         </div>
@@ -51,52 +51,65 @@ export default function ChatArea({ conversationId }: { conversationId: string })
       {/* ── Header ── */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)",
-        background: "#111118", flexShrink: 0
+        padding: "12px 20px", flexShrink: 0, position: "relative",
+        background: "#0d0d14", borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          {/* Back button mobile */}
-          <button
-            onClick={() => router.push("/chat")}
-            style={{
-              display: "none", width: "32px", height: "32px", borderRadius: "8px",
-              background: "#1a1a24", border: "1px solid rgba(255,255,255,0.07)",
-              cursor: "pointer", alignItems: "center", justifyContent: "center", fontSize: "16px"
-            }}
-            className="mobile-back"
-          >←</button>
+        {/* Subtle header glow */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "radial-gradient(ellipse at 30% 50%, rgba(108,99,255,0.04) 0%, transparent 60%)",
+          pointerEvents: "none"
+        }} />
+
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", position: "relative" }}>
+          {/* Back btn mobile */}
+          <button onClick={() => router.push("/chat")} style={{
+            display: "none", width: "32px", height: "32px", borderRadius: "8px",
+            background: "#1a1a24", border: "1px solid rgba(255,255,255,0.07)",
+            cursor: "pointer", alignItems: "center", justifyContent: "center", fontSize: "16px"
+          }}>←</button>
 
           {otherUser && (
             <>
-              {/* Avatar - fixed small size */}
+              {/* Avatar */}
               <div style={{ position: "relative", flexShrink: 0 }}>
+                <div style={{
+                  position: "absolute", inset: "-2px", borderRadius: "50%",
+                  background: otherUser.isOnline
+                    ? "linear-gradient(135deg, #22d3a0, #6c63ff)"
+                    : "transparent",
+                  opacity: 0.6
+                }} />
                 {otherUser.imageUrl ? (
-                  <img
-                    src={otherUser.imageUrl}
-                    alt={otherUser.name}
-                    style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover", display: "block" }}
-                  />
+                  <img src={otherUser.imageUrl} alt={otherUser.name}
+                    style={{ width: "42px", height: "42px", borderRadius: "50%", objectFit: "cover", display: "block", position: "relative" }} />
                 ) : (
                   <div style={{
-                    width: "40px", height: "40px", borderRadius: "50%", background: "#6c63ff",
+                    width: "42px", height: "42px", borderRadius: "50%",
+                    background: "linear-gradient(135deg, #6c63ff, #a78bfa)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: "14px", fontWeight: 700, color: "white",
-                    fontFamily: "'Syne', sans-serif", flexShrink: 0
+                    fontSize: "15px", fontWeight: 700, color: "white",
+                    fontFamily: "'Syne', sans-serif", position: "relative"
                   }}>{initials}</div>
                 )}
                 <span style={{
-                  position: "absolute", bottom: 0, right: 0,
+                  position: "absolute", bottom: "1px", right: "1px",
                   width: "10px", height: "10px", borderRadius: "50%",
-                  background: otherUser.isOnline ? "#22d3a0" : "#55556a",
-                  border: "2px solid #111118"
+                  background: otherUser.isOnline ? "#22d3a0" : "#2a2a3a",
+                  border: "2px solid #0d0d14",
+                  boxShadow: otherUser.isOnline ? "0 0 6px rgba(34,211,160,0.6)" : "none"
                 }} />
               </div>
 
               <div>
-                <p style={{ fontSize: "14px", fontWeight: 700, color: "#f0f0ff", margin: 0, fontFamily: "'Syne', sans-serif" }}>
-                  {otherUser.name}
-                </p>
-                <p style={{ fontSize: "11px", color: otherUser.isOnline ? "#22d3a0" : "#55556a", margin: "2px 0 0" }}>
+                <p style={{
+                  fontSize: "14px", fontWeight: 700, color: "#f0f0ff", margin: 0,
+                  fontFamily: "'Syne', sans-serif", letterSpacing: "-0.2px"
+                }}>{otherUser.name}</p>
+                <p style={{
+                  fontSize: "11px", margin: "2px 0 0",
+                  color: otherUser.isOnline ? "#22d3a0" : "#55556a"
+                }}>
                   {otherUser.isOnline ? "● Active now" : "○ Offline"}
                 </p>
               </div>
@@ -105,22 +118,44 @@ export default function ChatArea({ conversationId }: { conversationId: string })
         </div>
 
         {/* Action buttons */}
-        <div style={{ display: "flex", gap: "6px" }}>
-          {["📞", "🎥", "⋯"].map((icon, i) => (
-            <button key={i} style={{
+        <div style={{ display: "flex", gap: "6px", position: "relative" }}>
+          {[
+            { icon: "📞", title: "Voice call" },
+            { icon: "🎥", title: "Video call" },
+            { icon: "⋯", title: "More options" },
+          ].map(({ icon, title }) => (
+            <button key={title} title={title} style={{
               width: "34px", height: "34px", borderRadius: "10px",
-              background: "#1a1a24", border: "1px solid rgba(255,255,255,0.07)",
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.07)",
               cursor: "pointer", fontSize: "14px", display: "flex",
-              alignItems: "center", justifyContent: "center"
-            }}>{icon}</button>
+              alignItems: "center", justifyContent: "center", transition: "all 0.15s"
+            }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = "rgba(108,99,255,0.15)";
+                (e.currentTarget as HTMLElement).style.borderColor = "rgba(108,99,255,0.3)";
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)";
+                (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)";
+              }}
+            >{icon}</button>
           ))}
         </div>
       </div>
 
-      {/* ── Messages ── */}
-      <MessageList conversationId={convId} />
+      {/* ── Messages area with subtle bg pattern ── */}
+      <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+        {/* Dot grid background */}
+        <div style={{
+          position: "absolute", inset: 0, pointerEvents: "none",
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.015) 1px, transparent 1px)",
+          backgroundSize: "24px 24px"
+        }} />
+        <MessageList conversationId={convId} />
+      </div>
 
-      {/* ── Typing indicator ── */}
+      {/* ── Typing ── */}
       <TypingIndicator conversationId={convId} />
 
       {/* ── Input ── */}

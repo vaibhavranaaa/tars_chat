@@ -1,214 +1,170 @@
-import { currentUser } from "@clerk/nextjs/server";
+"use client";
 
-export default async function ChatPage() {
-  const user = await currentUser();
+import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "convex/_generated/api";
+
+export default function ChatPage() {
+  const { user } = useUser();
+  const conversations = useQuery(api.conversations.getMyConversations);
 
   return (
-    <div
-      className="flex-1 flex items-center justify-center h-full relative overflow-hidden"
-      style={{ background: "var(--bg-primary)" }}
-    >
-      {/* Background orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-          style={{ background: "radial-gradient(circle, #7c6aff, transparent)", top: "-5%", left: "15%", animationDuration: "4s" }} />
-        <div className="absolute w-80 h-80 rounded-full opacity-15 blur-3xl animate-pulse"
-          style={{ background: "radial-gradient(circle, #a78bfa, transparent)", bottom: "-5%", right: "15%", animationDuration: "6s", animationDelay: "2s" }} />
-      </div>
+    <div style={{
+      flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+      background: "#0a0a0f", height: "100%", position: "relative", overflow: "hidden"
+    }}>
 
-      {/* Grid overlay */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none"
-        style={{
-          backgroundImage: `linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)`,
-          backgroundSize: "40px 40px",
+      {/* Animated orbs */}
+      <div style={{
+        position: "absolute", width: "600px", height: "600px", borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(108,99,255,0.07) 0%, transparent 65%)",
+        top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+        animation: "pulse 6s ease-in-out infinite"
+      }} />
+      <div style={{
+        position: "absolute", width: "300px", height: "300px", borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 70%)",
+        top: "10%", right: "15%", animation: "float1 9s ease-in-out infinite"
+      }} />
+      <div style={{
+        position: "absolute", width: "200px", height: "200px", borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(34,211,160,0.05) 0%, transparent 70%)",
+        bottom: "15%", left: "10%", animation: "float2 11s ease-in-out infinite"
+      }} />
+
+      {/* Grid */}
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: `linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+                          linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px)`,
+        backgroundSize: "50px 50px",
+        maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 100%)"
+      }} />
+
+      {/* Floating dots */}
+      {[
+        { size: 4, top: "20%", left: "20%", delay: "0s", dur: "7s" },
+        { size: 6, top: "70%", left: "75%", delay: "1s", dur: "9s" },
+        { size: 3, top: "40%", left: "85%", delay: "2s", dur: "6s" },
+        { size: 5, top: "80%", left: "30%", delay: "0.5s", dur: "8s" },
+        { size: 4, top: "15%", left: "60%", delay: "1.5s", dur: "10s" },
+      ].map((dot, i) => (
+        <div key={i} style={{
+          position: "absolute", width: `${dot.size}px`, height: `${dot.size}px`,
+          borderRadius: "50%", background: "#6c63ff", opacity: 0.25,
+          top: dot.top, left: dot.left,
+          animation: `float1 ${dot.dur} ease-in-out infinite`,
+          animationDelay: dot.delay
         }} />
+      ))}
 
-      <style>{`
-        @keyframes floatA {
-          0%, 100% { transform: translateY(0px) rotate(-1deg); }
-          50%       { transform: translateY(-14px) rotate(1deg); }
-        }
-        @keyframes floatB {
-          0%, 100% { transform: translateY(0px) rotate(1deg); }
-          50%       { transform: translateY(-18px) rotate(-1deg); }
-        }
-        @keyframes floatC {
-          0%, 100% { transform: translateY(0px); }
-          50%       { transform: translateY(-10px); }
-        }
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes gradientShift {
-          0%   { background-position: 0% 50%; }
-          50%  { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @keyframes pulse-dot {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50%       { opacity: 0.5; transform: scale(1.4); }
-        }
-        .anim-1 { animation: fadeSlideUp 0.7s ease 0s both; }
-        .anim-2 { animation: fadeSlideUp 0.7s ease 0.15s both; }
-        .anim-3 { animation: fadeSlideUp 0.7s ease 0.3s both; }
-        .anim-4 { animation: fadeSlideUp 0.7s ease 0.45s both; }
-        .anim-5 { animation: fadeSlideUp 0.7s ease 0.6s both; }
-        .gradient-name {
-          background: linear-gradient(270deg, #7c6aff, #a78bfa, #c4b5fd, #7c6aff);
-          background-size: 300% 300%;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: gradientShift 4s ease infinite;
-        }
-        .float-a { animation: floatA 3.5s ease-in-out infinite; }
-        .float-b { animation: floatB 4.5s ease-in-out infinite; }
-        .float-c { animation: floatC 5s ease-in-out infinite; }
-        .float-d { animation: floatA 4s ease-in-out infinite 1s; }
-        .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
-      `}</style>
+      {/* Main content */}
+      <div style={{ position: "relative", zIndex: 10, textAlign: "center", maxWidth: "480px", padding: "32px" }}>
 
-      {/* TOP LEFT card */}
-      <div className="absolute float-a" style={{ top: "15%", left: "5%" }}>
-        <div className="px-4 py-3 rounded-2xl flex items-center gap-3"
-          style={{
-            background: "rgba(22,22,30,0.9)",
-            border: "1px solid rgba(249,115,22,0.4)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "0 8px 32px rgba(249,115,22,0.15)",
-            minWidth: "160px",
-          }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #f97316, #fb923c)" }}>⚡</div>
-          <div>
-            <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Real-time</p>
-            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Instant delivery</p>
-          </div>
-        </div>
-      </div>
-
-      {/* TOP RIGHT card */}
-      <div className="absolute float-b" style={{ top: "15%", right: "5%" }}>
-        <div className="px-4 py-3 rounded-2xl flex items-center gap-3"
-          style={{
-            background: "rgba(22,22,30,0.9)",
-            border: "1px solid rgba(16,185,129,0.4)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "0 8px 32px rgba(16,185,129,0.15)",
-            minWidth: "160px",
-          }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #10b981, #34d399)" }}>🔒</div>
-          <div>
-            <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Private</p>
-            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>End-to-end secure</p>
-          </div>
-        </div>
-      </div>
-
-      {/* BOTTOM LEFT card */}
-      <div className="absolute float-c" style={{ bottom: "18%", left: "5%" }}>
-        <div className="px-4 py-3 rounded-2xl flex items-center gap-3"
-          style={{
-            background: "rgba(22,22,30,0.9)",
-            border: "1px solid rgba(59,130,246,0.4)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "0 8px 32px rgba(59,130,246,0.15)",
-            minWidth: "160px",
-          }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #3b82f6, #60a5fa)" }}>🌐</div>
-          <div>
-            <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Any Device</p>
-            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Always in sync</p>
-          </div>
-        </div>
-      </div>
-
-      {/* BOTTOM RIGHT card */}
-      <div className="absolute float-d" style={{ bottom: "18%", right: "5%" }}>
-        <div className="px-4 py-3 rounded-2xl flex items-center gap-3"
-          style={{
-            background: "rgba(22,22,30,0.9)",
-            border: "1px solid rgba(124,106,255,0.4)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "0 8px 32px rgba(124,106,255,0.2)",
-            minWidth: "160px",
-          }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #7c6aff, #a78bfa)" }}>💬</div>
-          <div>
-            <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Live Chat</p>
-            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Messages in ms</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Center content */}
-      <div className="relative z-10 text-center px-4" style={{ maxWidth: "480px", width: "100%" }}>
-
-        {/* Icon */}
-        <div className="anim-1 relative inline-flex items-center justify-center mb-6">
-          <div className="w-24 h-24 rounded-3xl flex items-center justify-center text-5xl"
-            style={{
-              background: "linear-gradient(135deg, #7c6aff, #a78bfa)",
-              boxShadow: "0 0 80px rgba(124,106,255,0.6), 0 0 160px rgba(124,106,255,0.2)",
-            }}>
-            💬
-          </div>
-          <div className="absolute inset-0 rounded-3xl animate-ping opacity-20"
-            style={{ background: "var(--accent)" }} />
+        {/* Avatar with ring */}
+        <div style={{ position: "relative", display: "inline-block", marginBottom: "24px" }}>
+          <div style={{
+            position: "absolute", inset: "-8px", borderRadius: "50%",
+            background: "linear-gradient(135deg, #6c63ff, #22d3a0)",
+            opacity: 0.3, animation: "spin 8s linear infinite"
+          }} />
+          <div style={{
+            width: "80px", height: "80px", borderRadius: "28px", background: "linear-gradient(135deg, #6c63ff, #a78bfa)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "36px", position: "relative",
+            boxShadow: "0 0 60px rgba(108,99,255,0.4), 0 0 120px rgba(108,99,255,0.15)"
+          }}>⚡</div>
         </div>
 
-        {/* Heading */}
-        <h1 className="anim-2 text-4xl font-bold mb-3 tracking-tight"
-          style={{ color: "var(--text-primary)" }}>
-          Welcome back,{" "}
-          <span className="gradient-name">{user?.firstName ?? "there"}!</span>
+        {/* Greeting */}
+        <h1 style={{
+          fontSize: "32px", fontWeight: 800, margin: "0 0 8px",
+          fontFamily: "'Syne', sans-serif", letterSpacing: "-0.8px",
+          background: "linear-gradient(135deg, #f0f0ff 0%, #a78bfa 100%)",
+          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
+        }}>
+          Welcome back{user?.firstName ? `,` : "!"}
         </h1>
+        {user?.firstName && (
+          <h2 style={{
+            fontSize: "28px", fontWeight: 800, margin: "0 0 14px",
+            fontFamily: "'Syne', sans-serif", letterSpacing: "-0.5px",
+            color: "#6c63ff"
+          }}>{user.firstName}! 👋</h2>
+        )}
 
-        <p className="anim-3 text-sm mb-6 leading-relaxed"
-          style={{ color: "var(--text-secondary)" }}>
-          Your conversations are waiting. Search for someone or pick up where you left off.
+        <p style={{
+          fontSize: "14px", color: "#55556a", margin: "0 0 32px",
+          lineHeight: 1.7, fontFamily: "'DM Sans', sans-serif"
+        }}>
+          {conversations?.length
+            ? `You have ${conversations.length} conversation${conversations.length > 1 ? "s" : ""}. Pick up where you left off.`
+            : "No conversations yet. Search for someone to start chatting!"}
         </p>
 
         {/* Stats row */}
-        <div className="anim-4 grid grid-cols-3 gap-3 mb-6">
+        <div style={{ display: "flex", gap: "10px", marginBottom: "24px" }}>
           {[
-            { value: "< 100ms", label: "Latency" },
-            { value: "256-bit", label: "Encryption" },
-            { value: "99.9%", label: "Uptime" },
-          ].map(({ value, label }) => (
-            <div key={label} className="rounded-2xl py-3 px-2"
-              style={{
-                background: "var(--bg-secondary)",
-                border: "1px solid var(--border)",
-              }}>
-              <p className="text-base font-bold" style={{ color: "var(--accent)" }}>{value}</p>
-              <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{label}</p>
+            { value: conversations?.length ?? 0, label: "Chats", icon: "💬" },
+            { value: conversations?.filter(c => c.otherUser?.isOnline).length ?? 0, label: "Online", icon: "🟢" },
+            { value: conversations?.reduce((acc, c) => acc + c.unreadCount, 0) ?? 0, label: "Unread", icon: "📬" },
+          ].map(({ value, label, icon }) => (
+            <div key={label} style={{
+              flex: 1, padding: "16px 8px", borderRadius: "16px",
+              background: "#111118", border: "1px solid rgba(255,255,255,0.06)",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: "4px"
+            }}>
+              <span style={{ fontSize: "18px" }}>{icon}</span>
+              <span style={{ fontSize: "22px", fontWeight: 800, color: "#f0f0ff", fontFamily: "'Syne', sans-serif", lineHeight: 1 }}>{value}</span>
+              <span style={{ fontSize: "10px", color: "#55556a", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>{label}</span>
             </div>
           ))}
         </div>
 
-        {/* Live indicator */}
-        <div className="anim-4 flex items-center justify-center gap-2 mb-5">
-          <span className="pulse-dot w-2 h-2 rounded-full inline-block"
-            style={{ background: "var(--online)" }} />
-          <span className="text-xs font-medium" style={{ color: "var(--online)" }}>
-            Powered by Convex — updates in real time
-          </span>
+        {/* Feature pills */}
+        <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+          {[
+            { icon: "⚡", label: "< 100ms latency" },
+            { icon: "🔒", label: "256-bit encrypted" },
+            { icon: "🌐", label: "99.9% uptime" },
+          ].map(({ icon, label }) => (
+            <div key={label} style={{
+              display: "flex", alignItems: "center", gap: "6px",
+              padding: "8px 14px", borderRadius: "999px",
+              background: "#111118", border: "1px solid rgba(255,255,255,0.06)",
+              fontSize: "12px", color: "#8888aa", fontFamily: "'DM Sans', sans-serif"
+            }}>
+              <span>{icon}</span>
+              <span>{label}</span>
+            </div>
+          ))}
         </div>
 
-        {/* Tip */}
-        <div className="anim-5 inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm"
-          style={{
-            background: "var(--accent-soft)",
-            border: "1px solid rgba(124,106,255,0.25)",
-            color: "var(--accent)",
-          }}>
-          💡 Click <strong className="mx-1">Search</strong> in the sidebar to start a new chat
-        </div>
+        {/* Powered by */}
+        <p style={{ fontSize: "11px", color: "#2a2a3a", marginTop: "28px", fontFamily: "'DM Sans', sans-serif" }}>
+          Powered by <span style={{ color: "#6c63ff" }}>Convex</span> — updates in real time
+        </p>
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+          50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.7; }
+        }
+        @keyframes float1 {
+          0%, 100% { transform: translate(0, 0); }
+          33% { transform: translate(15px, -20px); }
+          66% { transform: translate(-10px, 10px); }
+        }
+        @keyframes float2 {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(-15px, -15px); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
